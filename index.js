@@ -176,7 +176,6 @@ function CASAuthentication(options) {
  * login page.
  */
 CASAuthentication.prototype.bounce = function(req, res, next) {
-
     // Handle the request with the bounce authorization type.
     this._handle(req, res, next, AUTH_TYPE.BOUNCE);
 };
@@ -243,10 +242,10 @@ CASAuthentication.prototype._handle = function(req, res, next, authType) {
  */
 CASAuthentication.prototype._login = function(req, res, next) {
 
+
     // Save the return URL in the session. If an explicit return URL is set as a
     // query parameter, use that. Otherwise, just use the URL from the request.
-    req.session.cas_return_to = req.query.returnTo || url.parse(req.url).path;
-
+    this.cas_return_to = req.query.returnTo || url.parse(req.url).path;
     // Set up the query parameters.
     var query = {
         service: this.service_url + url.parse(req.url).pathname,
@@ -281,8 +280,18 @@ CASAuthentication.prototype.logout = function(req, res, next) {
         }
     }
 
+    var query = {
+        service: this.service_url+'/',
+        renew: this.renew
+    };
+
+    var path = url.format({
+        pathname: this.cas_url+'/logout',
+        query: query
+    });
+
     // Redirect the client to the CAS logout.
-    res.redirect(this.cas_url + '/logout');
+    res.redirect(path);
 };
 
 /**
@@ -352,7 +361,11 @@ CASAuthentication.prototype._handleTicket = function(req, res, next) {
                     if (this.session_info) {
                         req.session[ this.session_info ] = attributes || {};
                     }
-                    res.redirect(req.session.cas_return_to);
+                    if(!this.cas_return_to){
+                        this.cas_return_to = '';
+                    }
+                    res.redirect(this.cas_return_to);
+
                 }
             }.bind(this));
         }.bind(this));
